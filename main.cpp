@@ -12,27 +12,27 @@
 constexpr u_char rocks_data[] = {
     #embed "Rock.aseprite"
 };
-constexpr auto rocks_parsed = parsed_file<rocks_data, read_frame_count(rocks_data)>{};
+constexpr auto rocks_parsed = parsed_file<sizeof(rocks_data), rocks_data, read_frame_count(rocks_data)>{};
 constexpr u_char salamander_data[] = {
     #embed "Salamander.aseprite"
 };
-constexpr auto salamander_parsed = parsed_file<salamander_data, read_frame_count(salamander_data)>{};
+constexpr auto salamander_parsed = parsed_file<sizeof(salamander_data), salamander_data, read_frame_count(salamander_data)>{};
 constexpr u_char interface_data[] = {
     #embed "Interface.aseprite"
 };
-constexpr auto interface_parsed = parsed_file<interface_data, read_frame_count(interface_data)>{};
+constexpr auto interface_parsed = parsed_file<sizeof(interface_data), interface_data, read_frame_count(interface_data)>{};
 constexpr u_char hand_data[] = {
     #embed "Hand.aseprite"
 };
-constexpr auto hand_parsed = parsed_file<hand_data, read_frame_count(hand_data)>{};
+constexpr auto hand_parsed = parsed_file<sizeof(hand_data), hand_data, read_frame_count(hand_data)>{};
 constexpr u_char text_data[] = {
     #embed "Text.aseprite"
 };
-constexpr auto text_parsed = parsed_file<text_data, read_frame_count(text_data)>{};
+constexpr auto text_parsed = parsed_file<sizeof(text_data), text_data, read_frame_count(text_data)>{};
 constexpr u_char gameover_data[] = {
     #embed "Gameover.aseprite"
 };
-constexpr auto gameover_parsed = parsed_file<gameover_data, read_frame_count(gameover_data)>{};
+constexpr auto gameover_parsed = parsed_file<sizeof(gameover_data), gameover_data, read_frame_count(gameover_data)>{};
 
 enum class textures : Uint8 {
     salamander,
