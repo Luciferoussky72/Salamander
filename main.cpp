@@ -1,13 +1,13 @@
 #include <cmath>
 
-#include "../Aseprite_Parsing/aseprite_parser.hpp"
+#include <aseprite_parser.hpp>
 #include <SDL3/SDL_init.h>
-#include <loam/Loader.hpp>
-#include <loam/Random.hpp>
-#include <loam/Vec2.hpp>
-#include <loam/KeyboardMouse.hpp>
-#include <loam/Collisions.hpp>
-#include <loam/Math.hpp>
+#include <loam/loader.hpp>
+#include <loam/random.hpp>
+#include <loam/vec2.hpp>
+#include <loam/keyboard_mouse.hpp>
+#include <loam/collisions.hpp>
+#include <loam/math.hpp>
 
 constexpr u_char rocks_data[] = {
     #embed "Rock.aseprite"
@@ -46,9 +46,9 @@ enum class textures : Uint8 {
 };
 
 struct Salamander {
-    loam::Spritesheet sprites{};
-    loam::Vec2 position{};
-    loam::Vec2 velocity{};
+    loam::spritesheet sprites{};
+    loam::vec2 position{};
+    loam::vec2 velocity{};
     double angle = 0.0;
     bool moving_this_frame = false;
     constexpr static double ANGLE_STEP = 2.0;
@@ -59,27 +59,27 @@ struct Salamander {
 };
 
 struct Hand {
-    loam::Spritesheet grab_sprites{};
-    loam::Spritesheet grab_shadow_sprites{};
-    loam::Vec2 position{};
+    loam::spritesheet grab_sprites{};
+    loam::spritesheet grab_shadow_sprites{};
+    loam::vec2 position{};
     float z = 50.0f;
     size_t frame = 0;
     size_t grab_interval = 360;
     size_t ticks_since_last_grab = 0;
     bool on_ground = false;
     bool hit_rock = false;
-    loam::Vec2* grabbed_thing_pos = nullptr;
+    loam::vec2* grabbed_thing_pos = nullptr;
 };
 
 struct Camera {
-    loam::Vec2 top_left_pos{};
-    [[nodiscard]] loam::Vec2 world_to_screen(loam::Vec2 input) const {
+    loam::vec2 top_left_pos{};
+    [[nodiscard]] loam::vec2 world_to_screen(loam::vec2 input) const {
         return input - top_left_pos;
     }
-    [[maybe_unused]] [[nodiscard]] loam::Vec2 screen_to_world(loam::Vec2 input) const {
+    [[maybe_unused]] [[nodiscard]] loam::vec2 screen_to_world(loam::vec2 input) const {
         return top_left_pos + input;
     }
-    void center_around(SDL_Window* window, loam::Vec2 center) {
+    void center_around(SDL_Window* window, loam::vec2 center) {
         int w = 0;
         int h = 0;
         SDL_GetWindowSize(window, &w, &h);
@@ -92,7 +92,7 @@ struct Camera {
 
 constexpr size_t ROCK_COUNT = 1024;
 constexpr float ROCK_SPREAD_AREA = 25000.0f;
-constinit loam::Vec2 rock_positions[ROCK_COUNT] = {};
+constinit loam::vec2 rock_positions[ROCK_COUNT] = {};
 constinit size_t rock_sprites[ROCK_COUNT] = {};
 
 constexpr float SCALE = 6.0f;
@@ -107,24 +107,24 @@ int main() {
     SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
     SDL_SetRenderVSync(renderer, 1);
 
-    loam::Loader<textures> textures{renderer};
+    loam::loader<textures> textures{renderer};
 
     Salamander salamander{};
     textures.load_texture(textures::salamander, salamander_parsed.fetch_animation("Walk", renderer));
-    salamander.sprites = loam::Spritesheet{textures[textures::salamander], *salamander_parsed.fetch_animation_direction("Walk"),
+    salamander.sprites = loam::spritesheet{textures[textures::salamander], *salamander_parsed.fetch_animation_direction("Walk"),
         salamander_parsed.fetch_canvas_width(), salamander_parsed.fetch_canvas_height()};
 
     Hand hand{};
-    hand.position = loam::Vec2{50000.0f, 50000.0f};
+    hand.position = loam::vec2{50000.0f, 50000.0f};
     textures.load_texture(textures::hand_grab, hand_parsed.fetch_animation("Grab", renderer));
-    hand.grab_sprites = loam::Spritesheet{
+    hand.grab_sprites = loam::spritesheet{
         textures[textures::hand_grab],
         *hand_parsed.fetch_animation_direction("Grab"),
         hand_parsed.fetch_canvas_width(),
         hand_parsed.fetch_canvas_height()
     };
     textures.load_texture(textures::hand_grab_shadow, hand_parsed.fetch_animation("Grab Shadow", renderer));
-    hand.grab_shadow_sprites = loam::Spritesheet{
+    hand.grab_shadow_sprites = loam::spritesheet{
         textures[textures::hand_grab_shadow],
         *hand_parsed.fetch_animation_direction("Grab Shadow"),
         hand_parsed.fetch_canvas_width(),
@@ -135,18 +135,18 @@ int main() {
     textures.load_texture(textures::gameover, gameover_parsed.fetch_spritesheet(renderer));
 
     Camera camera{};
-    camera.center_around(window, loam::Vec2 {
+    camera.center_around(window, loam::vec2 {
         salamander.position.x + static_cast<float>(salamander.sprites.sprite_width) * SCALE / 2.0f,
         salamander.position.y + static_cast<float>(salamander.sprites.sprite_height) * SCALE / 2.0f
     });
 
     textures.load_texture(textures::rocks, rocks_parsed.fetch_animation("Rocks", renderer));
-    loam::Spritesheet rock_spritesheet = loam::Spritesheet{textures[textures::rocks], *rocks_parsed.fetch_animation_direction("Rocks"),
+    loam::spritesheet rock_spritesheet = loam::spritesheet{textures[textures::rocks], *rocks_parsed.fetch_animation_direction("Rocks"),
         rocks_parsed.fetch_canvas_width(), rocks_parsed.fetch_canvas_height()};
     textures.load_texture(textures::rock_shadows, rocks_parsed.fetch_animation("Shadows", renderer));
-    loam::Spritesheet rock_shadow_spritesheet = loam::Spritesheet{textures[textures::rock_shadows], *rocks_parsed.fetch_animation_direction("Shadows"),
+    loam::spritesheet rock_shadow_spritesheet = loam::spritesheet{textures[textures::rock_shadows], *rocks_parsed.fetch_animation_direction("Shadows"),
         rocks_parsed.fetch_canvas_width(), rocks_parsed.fetch_canvas_height()};
-    for (loam::Vec2& pos : rock_positions) {
+    for (loam::vec2& pos : rock_positions) {
         pos.x = loam::rand_float(-ROCK_SPREAD_AREA, ROCK_SPREAD_AREA);
         pos.y = loam::rand_float(-ROCK_SPREAD_AREA, ROCK_SPREAD_AREA);
     }
@@ -155,10 +155,10 @@ int main() {
     }
 
     textures.load_texture(textures::interface, interface_parsed.fetch_spritesheet(renderer));
-    loam::Spritesheet interface_spritesheet = loam::Spritesheet{textures[textures::interface], loam::animation_direction::forward,
+    loam::spritesheet interface_spritesheet = loam::spritesheet{textures[textures::interface], loam::animation_direction::forward,
         interface_parsed.fetch_canvas_width(), interface_parsed.fetch_canvas_height()};
 
-    loam::KeyboardMouse input{};
+    loam::keyboard_mouse input{};
 
     bool running = true;
     volatile bool on_main_menu = true;
@@ -181,11 +181,11 @@ int main() {
         //end update calls
         if (on_main_menu) {
             if (input.key_down(SDL_SCANCODE_SPACE)) {
-                salamander.position = loam::Vec2{};
+                salamander.position = loam::vec2{};
                 salamander.angle = 0.0;
                 salamander.frame = 0;
                 salamander.moving_this_frame = false;
-                salamander.velocity = loam::Vec2{};
+                salamander.velocity = loam::vec2{};
                 ticks = 0;
                 on_main_menu = false;
                 continue;
@@ -232,7 +232,7 @@ int main() {
             SDL_SetRenderDrawColor(renderer, 217, 160, 102, 255);
             SDL_RenderClear(renderer);
 
-            loam::Vec2 salamander_screen_pos = camera.world_to_screen(salamander.position + loam::Vec2{200.0f, 0.0f});
+            loam::vec2 salamander_screen_pos = camera.world_to_screen(salamander.position + loam::vec2{200.0f, 0.0f});
             salamander.sprites.render(renderer, salamander.frame, {
                 .x = salamander_screen_pos.x,
                 .y = salamander_screen_pos.y,
@@ -264,9 +264,9 @@ int main() {
         } else if (on_game_over_screen) {
             if (input.key_down(SDL_SCANCODE_R)) {
                 salamander = Salamander{};
-                salamander.sprites = loam::Spritesheet{textures[textures::salamander], *salamander_parsed.fetch_animation_direction("Walk"),
+                salamander.sprites = loam::spritesheet{textures[textures::salamander], *salamander_parsed.fetch_animation_direction("Walk"),
                     salamander_parsed.fetch_canvas_width(), salamander_parsed.fetch_canvas_height()};
-                for (loam::Vec2& pos : rock_positions) {
+                for (loam::vec2& pos : rock_positions) {
                     pos.x = loam::rand_float(-ROCK_SPREAD_AREA, ROCK_SPREAD_AREA);
                     pos.y = loam::rand_float(-ROCK_SPREAD_AREA, ROCK_SPREAD_AREA);
                 }
@@ -274,19 +274,19 @@ int main() {
                     spr = loam::rand_int(0, rocks_parsed.header_data.frame_count);
                 }
                 hand = Hand{};
-                hand.grab_sprites = loam::Spritesheet{
+                hand.grab_sprites = loam::spritesheet{
                     textures[textures::hand_grab],
                     *hand_parsed.fetch_animation_direction("Grab"),
                     hand_parsed.fetch_canvas_width(),
                     hand_parsed.fetch_canvas_height()
                 };
-                hand.grab_shadow_sprites = loam::Spritesheet{
+                hand.grab_shadow_sprites = loam::spritesheet{
                     textures[textures::hand_grab_shadow],
                     *hand_parsed.fetch_animation_direction("Grab Shadow"),
                     hand_parsed.fetch_canvas_width(),
                     hand_parsed.fetch_canvas_height()
                 };
-                hand.position = loam::Vec2{50000.0f, 50000.0f};
+                hand.position = loam::vec2{50000.0f, 50000.0f};
                 ticks = 0;
                 on_game_over_screen = false;
                 continue;
@@ -345,16 +345,16 @@ int main() {
                     }
                 }
 
-                camera.center_around(window, loam::Vec2 {
+                camera.center_around(window, loam::vec2 {
                     salamander.position.x + static_cast<float>(salamander.sprites.sprite_width) * SCALE / 2.0f,
                     salamander.position.y + static_cast<float>(salamander.sprites.sprite_height) * SCALE / 2.0f
                 });
 
                 if (hand.ticks_since_last_grab == hand.grab_interval) {
                     hand.frame = 0;
-                    hand.position = salamander.position + loam::Vec2{
-                        (loam::rand_bool() ? 1.0f : -1.0f) * loam::rand_float(400.0f, 800.0f),
-                        (loam::rand_bool() ? 1.0f : -1.0f) * loam::rand_float(400.0f, 800.0f)};
+                    hand.position = salamander.position + loam::vec2{
+                        .x = (loam::rand_bool() ? 1.0f : -1.0f) * loam::rand_float(400.0f, 800.0f),
+                        .y = (loam::rand_bool() ? 1.0f : -1.0f) * loam::rand_float(400.0f, 800.0f)};
                 }
                 if (!hand.on_ground and hand.ticks_since_last_grab > hand.grab_interval) {
                     if (not((salamander.position - hand.position).magnitude_squared() < 100.0f)) {
@@ -371,12 +371,12 @@ int main() {
                     }
                 }
                 if (hand.on_ground) {
-                    for (loam::Vec2& pos : rock_positions) {
+                    for (loam::vec2& pos : rock_positions) {
                         if (loam::colliding(
                             SDL_FPoint(pos),
                             static_cast<float>(rock_spritesheet.sprite_width) * SCALE,
                             static_cast<float>(rock_spritesheet.sprite_height) * SCALE,
-                            SDL_FPoint(salamander.position + loam::Vec2{16.0f, 16.0f}),
+                            SDL_FPoint(salamander.position + loam::vec2{16.0f, 16.0f}),
                             (static_cast<float>(salamander.sprites.sprite_width) - 16.0f) * SCALE,
                             (static_cast<float>(salamander.sprites.sprite_height) - 16.0f) * SCALE)
                             and
@@ -384,7 +384,7 @@ int main() {
                             SDL_FPoint(pos),
                             static_cast<float>(rock_spritesheet.sprite_width) * SCALE,
                             static_cast<float>(rock_spritesheet.sprite_height) * SCALE,
-                            SDL_FPoint(hand.position + loam::Vec2{16.0f, 16.0f}),
+                            SDL_FPoint(hand.position + loam::vec2{16.0f, 16.0f}),
                             (static_cast<float>(hand.grab_sprites.sprite_width) - 16.0f) * SCALE,
                             (static_cast<float>(hand.grab_sprites.sprite_height) - 16.0f) * SCALE)
 
@@ -396,10 +396,10 @@ int main() {
                         }
                     }
                     if (loam::colliding(
-                        SDL_FPoint(salamander.position + loam::Vec2{16.0f, 16.0f}),
+                        SDL_FPoint(salamander.position + loam::vec2{16.0f, 16.0f}),
                         (static_cast<float>(salamander.sprites.sprite_width) - 16.0f) * SCALE,
                         (static_cast<float>(salamander.sprites.sprite_height) - 16.0f) * SCALE,
-                        SDL_FPoint(hand.position + loam::Vec2{16.0f, 16.0f}),
+                        SDL_FPoint(hand.position + loam::vec2{16.0f, 16.0f}),
                         (static_cast<float>(hand.grab_sprites.sprite_width) - 16.0f) * SCALE,
                         (static_cast<float>(hand.grab_sprites.sprite_height) - 16.0f) * SCALE)
                         and !hand.grabbed_thing_pos
@@ -412,7 +412,7 @@ int main() {
                     grabbed_a_rock:
                     hand.z += 2.0f;
                     if (hand.grabbed_thing_pos) {
-                        *hand.grabbed_thing_pos = loam::Vec2{hand.position.x, hand.position.y - hand.z * SCALE};
+                        *hand.grabbed_thing_pos = loam::vec2{hand.position.x, hand.position.y - hand.z * SCALE};
                     }
                     if (hand.z >= 100.0f) {
                         hand.grabbed_thing_pos = nullptr;
@@ -427,12 +427,12 @@ int main() {
                 if (ticks % 60 == 0) {
                     salamander.cooling_down = false;
                     Uint8 temperature_change = 1 + (ticks / 3600 < 3 ? ticks / 3600 : 3);
-                    for (loam::Vec2 pos : rock_positions) {
+                    for (loam::vec2 pos : rock_positions) {
                         if (loam::colliding(
                             SDL_FPoint(pos),
                             static_cast<float>(rock_spritesheet.sprite_width) * SCALE,
                             static_cast<float>(rock_spritesheet.sprite_height) * SCALE,
-                            SDL_FPoint(salamander.position + loam::Vec2{16.0f, 16.0f}),
+                            SDL_FPoint(salamander.position + loam::vec2{16.0f, 16.0f}),
                             (static_cast<float>(salamander.sprites.sprite_width) - 16.0f) * SCALE,
                             (static_cast<float>(salamander.sprites.sprite_height) - 16.0f) * SCALE)
                         ) {
@@ -464,7 +464,7 @@ int main() {
 
             for (size_t i = 0; i < ROCK_COUNT; ++i) {
                 SDL_SetTextureAlphaModFloat(rock_shadow_spritesheet.texture, 0.8f);
-                loam::Vec2 screen_pos = camera.world_to_screen(rock_positions[i]);
+                loam::vec2 screen_pos = camera.world_to_screen(rock_positions[i]);
                 rock_shadow_spritesheet.render(renderer, rock_sprites[i], {
                     .x = screen_pos.x,
                     .y = screen_pos.y + 2.0f * SCALE,
@@ -473,7 +473,7 @@ int main() {
                 });
             }
 
-            loam::Vec2 salamander_screen_pos = camera.world_to_screen(salamander.position);
+            loam::vec2 salamander_screen_pos = camera.world_to_screen(salamander.position);
             salamander.sprites.render(renderer, salamander.frame, {
                 .x = std::floor(salamander_screen_pos.x),
                 .y = std::floor(salamander_screen_pos.y),
@@ -482,12 +482,12 @@ int main() {
             }, false, false, salamander.angle);
 
             for (size_t i = 0; i < ROCK_COUNT; ++i) {
-                loam::Vec2 screen_pos = camera.world_to_screen(rock_positions[i]);
+                loam::vec2 screen_pos = camera.world_to_screen(rock_positions[i]);
                 if (loam::colliding(
                     SDL_FPoint(screen_pos),
                     static_cast<float>(rock_spritesheet.sprite_width) * SCALE,
                     static_cast<float>(rock_spritesheet.sprite_height) * SCALE,
-                    SDL_FPoint(salamander_screen_pos + loam::Vec2{16.0f, 16.0f}),
+                    SDL_FPoint(salamander_screen_pos + loam::vec2{16.0f, 16.0f}),
                     (static_cast<float>(salamander.sprites.sprite_width) - 16.0f) * SCALE,
                     (static_cast<float>(salamander.sprites.sprite_height) - 16.0f) * SCALE)
                 ) {
@@ -511,7 +511,7 @@ int main() {
                 });
             }
 
-            loam::Vec2 real_hand_pos = camera.world_to_screen(hand.position);
+            loam::vec2 real_hand_pos = camera.world_to_screen(hand.position);
             SDL_SetTextureAlphaModFloat(hand.grab_shadow_sprites.texture, 0.8f);
             hand.grab_shadow_sprites.render(renderer, hand.frame, {
                 .x = real_hand_pos.x,

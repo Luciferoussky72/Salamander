@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.3)
 set(CMAKE_CXX_COMPILER g++-16)
 project(Salamander)
 
@@ -38,14 +38,11 @@ target_link_options(salamander PRIVATE
         >
 )
 
-target_include_directories(salamander PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Loam/include
-)
+
 target_link_directories(salamander PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../Loam/cmake-build-release
 )
-target_include_directories(salamander PRIVATE "../Loam/include/")
-target_include_directories(salamander PRIVATE "../Reflection/")
+target_include_directories(salamander PRIVATE "../Loam/include/" "../Reflection/" "../Aseprite_Parsing/")
 target_link_libraries(salamander PRIVATE
         ZLIB::ZLIB
         SDL3::SDL3
